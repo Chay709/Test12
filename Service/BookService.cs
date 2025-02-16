@@ -1,6 +1,7 @@
 ﻿using Data;
 using Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Service.models;
 using System;
 
 namespace Service
@@ -14,27 +15,66 @@ namespace Service
             _context = context;
         }
 
-        public async Task<List<Book>> GetAllAsync(string? title = null)
+        public async Task<List<BookResponse>> GetAllAsync(string? title = null)
         {
+            var booksQuery = _context.Books.AsQueryable();
+
             if (!string.IsNullOrEmpty(title))
             {
-                return await _context.Books.Where(b => b.Title == title).ToListAsync();
+                booksQuery = booksQuery.Where(b => b.Title == title);
             }
-            return await _context.Books.ToListAsync();
+
+            var books = await booksQuery
+                .Select(b => new BookResponse
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    Author = b.Author,
+                    Price = b.Price
+                })
+                .ToListAsync();
+
+            return books;
         }
 
-        public async Task<Book?> GetByIdAsync(int id) => await _context.Books.FindAsync(id);
-
-
-        public async Task AddAsync(Book book)
+        public async Task<BookResponse?> GetByIdAsync(int id)
         {
+            var book = await _context.Books
+                .Where(b => b.Id == id)
+                .Select(b => new BookResponse
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    Author = b.Author,
+                    Price = b.Price
+                })
+                .FirstOrDefaultAsync();
+
+            return book;
+        }
+
+        public async Task AddAsync(BookRequest bookRequest)
+        {
+            var book = new Book
+            {
+                Title = bookRequest.Title,
+                Author = bookRequest.Author,
+                Price = bookRequest.Price
+            };
+
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> UpdateAsync(Book book)
+        public async Task<bool> UpdateAsync(int id, BookRequest bookRequest)
         {
-            if (!_context.Books.Any(b => b.Id == book.Id)) return false;
+            var book = await _context.Books.FindAsync(id);
+            if (book == null) return false;
+
+            book.Title = bookRequest.Title;
+            book.Author = bookRequest.Author;
+            book.Price = bookRequest.Price;
+
             _context.Books.Update(book);
             await _context.SaveChangesAsync();
             return true;
@@ -44,10 +84,11 @@ namespace Service
         {
             var book = await _context.Books.FindAsync(id);
             if (book == null) return false;
+
             _context.Books.Remove(book);
             await _context.SaveChangesAsync();
             return true;
         }
-    
-}
+    }
+
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using Service.models;
 
 namespace WebApplication1.Controllers
 {
@@ -31,17 +32,17 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(Book book)
+        public async Task<IActionResult> Create([FromBody] BookRequest bookRequest)
         {
-            await _service.AddAsync(book);
-            return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
+            await _service.AddAsync(bookRequest);
+            return CreatedAtAction(nameof(GetById), new { id = bookRequest.Id }, bookRequest);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Book book)
+        public async Task<IActionResult> Update(int id, [FromBody] BookRequest bookRequest)
         {
-            if (id != book.Id) return BadRequest();
-            return await _service.UpdateAsync(book) ? NoContent() : NotFound();
+            if (id != bookRequest.Id) return BadRequest();
+            return await _service.UpdateAsync(id, bookRequest) ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id}")]
@@ -50,4 +51,5 @@ namespace WebApplication1.Controllers
             return await _service.DeleteAsync(id) ? NoContent() : NotFound();
         }
     }
+
 }
